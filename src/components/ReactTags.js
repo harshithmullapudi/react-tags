@@ -120,6 +120,16 @@ class ReactTags extends Component {
       this.resetAndFocusInput();
     }
   }
+  
+  static getDerivedStateFromProps(props, state)
+  {
+    const { classNames } = props;
+    
+    return {
+      classNames : {...DEFAULT_CLASSNAMES,...classNames}
+    }
+    
+  }
 
   filteredSuggestions(query, suggestions) {
     if (this.props.handleFilterSuggestions) {

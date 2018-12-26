@@ -1,6 +1,6 @@
 {
-  "name": "react-tag-input",
-  "version": "0.0.0-semantically-released",
+  "name": "react-tag-input-hac",
+  "version": "1.0.0",
   "description": "React tags is a fantastically simple tagging component for your React projects",
   "main": "dist-modules/components/ReactTags.js",
   "files": [
@@ -28,7 +28,7 @@
   ],
   "author": "Prakhar Srivastav",
   "license": "MIT",
-  "repository": "https://github.com/prakhar1989/react-tags",
+  "repository": "https://github.com/harshithmullapudi/react-tags",
   "peerDependencies": {
     "react": "^16.3.1",
     "react-dom": "^16.3.1"
