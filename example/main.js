@@ -276,14 +276,29 @@ class App extends React.Component {
     console.log('The tag at index ' + index + ' was clicked');
   }
 
+  handleTagUpdate = (updatedTag) => {
+  	console.log(updatedTag)
+  	const { id, text, index } = updatedTag;
+    const { tags } = this.state;
+   	tags[index] = {
+   		id, 
+   		text,
+   	};
+   	this.setState({
+   		tags,
+   	})
+  }
+
   render() {
     const { tags } = this.state;
     return (
       <div>
-        <Tags
+         <Tags
           tags={tags}
           suggestions={suggestions}
           delimiters={delimiters}
+          editable={true}
+          onTagUpdate={this.handleTagUpdate}
           handleDelete={this.handleDelete}
           handleAddition={this.handleAddition}
           handleDrag={this.handleDrag}

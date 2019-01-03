@@ -26,11 +26,15 @@ class Tag extends Component {
       readOnly,
       tag,
       classNames,
+      editTag,
+      editable,
+      onTagClicked,
     } = props;
     const { className = '' } = tag;
     const tagComponent = ( <span
       className={ClassNames('tag-wrapper', classNames.tag, {'opacity-none' : isDragging}, {'cursor-move': canDrag(props)}, className)}
-      onClick={props.onTagClicked}
+      onDoubleClick={editable ? editTag : undefined}
+      onClick={editable ? undefined : onTagClicked}
       onKeyDown={props.onTagClicked}>
       {label}
       <RemoveComponent

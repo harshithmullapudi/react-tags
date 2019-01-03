@@ -71,6 +71,7 @@ class ReactTags extends Component {
     delimiters: [KEYS.ENTER, KEYS.TAB],
     autofocus: true,
     inline: true,
+    editable: false,
     handleDelete: noop,
     handleAddition: noop,
     allowDeleteFromEmptyInput: true,
@@ -80,18 +81,22 @@ class ReactTags extends Component {
     readOnly: false,
     allowUnique: true,
     allowDragDrop: true,
+    inputValue: '',
     tags: [],
   };
 
   constructor(props) {
     super(props);
-    const { suggestions, classNames } = props;
+    const { suggestions, classNames, inputValue } = props;
     this.state = {
       suggestions,
       query: '',
       isFocused: false,
       selectedIndex: -1,
       selectionMode: false,
+      currentEditIndex: -1,
+      editing: false,
+      inputValue: inputValue,
       classNames: { ...DEFAULT_CLASSNAMES, ...classNames },
     };
 
@@ -128,11 +133,10 @@ class ReactTags extends Component {
   }
 
   resetAndFocusInput() {
-    this.setState({ query: '' });
+    this.setState({ query: '', inputValue: '' });
     if (this.textInput) {
-      this.textInput.value = '';
       this.textInput.focus();
-    }
+    }  
   }
 
   handleDelete(i, e) {
@@ -156,11 +160,19 @@ class ReactTags extends Component {
     }
   }
 
-  handleChange(e) {
+  handleInputChange(value) {
     if (this.props.handleInputChange) {
-      this.props.handleInputChange(e.target.value);
+      this.props.handleInputChange(value);
     }
 
+    this.setState({
+      inputValue: value,
+    });
+  }
+
+  handleChange(e) {
+    
+    this.handleInputChange(e.target.value);
     const query = e.target.value.trim();
     const suggestions = this.filteredSuggestions(query, this.props.suggestions);
 
@@ -185,18 +197,23 @@ class ReactTags extends Component {
   }
 
   handleBlur(e) {
-    const value = e.target.value;
-    if (this.props.handleInputBlur) {
-      this.props.handleInputBlur(value);
-      if (this.textInput) {
-        this.textInput.value = '';
-      }
+    if(this.state.editing) {
+      this.onTagUpdate();
     }
-    this.setState({ isFocused: false });
+    else {
+      const value = e.target.value;
+      if (this.props.handleInputBlur) {
+        this.props.handleInputBlur(value);
+        if (this.textInput) {
+          this.textInput.value = '';
+        }
+      }
+      this.setState({ isFocused: false });
+    }
   }
 
   handleKeyDown(e) {
-    const { query, selectedIndex, suggestions, selectionMode } = this.state;
+    const { query, selectedIndex, suggestions, selectionMode, editing } = this.state;
 
     // hide suggestions menu on escape
     if (e.keyCode === KEYS.ESCAPE) {
@@ -231,7 +248,7 @@ class ReactTags extends Component {
     if (
       e.keyCode === KEYS.BACKSPACE &&
       query === '' &&
-      this.props.allowDeleteFromEmptyInput
+      this.props.allowDeleteFromEmptyInput && !editing
     ) {
       this.handleDelete(this.props.tags.length - 1, e);
     }
@@ -284,6 +301,18 @@ class ReactTags extends Component {
     );
   }
 
+  editTag = (index) => {
+    const { tags, labelField } = this.props;
+
+    this.setState({
+      editing: true,
+      currentEditIndex: index,
+      inputValue: tags[index][labelField],
+    });
+
+    this.textInput.focus();
+  }
+
   addTag = (tag) => {
     const { tags, labelField, allowUnique } = this.props;
     if (!tag.id || !tag[labelField]) {
@@ -309,11 +338,17 @@ class ReactTags extends Component {
       }
     }
 
-    // call method to add
-    this.props.handleAddition(tag);
+    // call method to add if it's not in editing state
+    if(this.state.editing) {
+      this.onTagUpdate(tag);
+    }
+    else {
+      this.props.handleAddition(tag);
+    }
 
     // reset the state
     this.setState({
+      inputValue: '',
       query: '',
       selectionMode: false,
       selectedIndex: -1,
@@ -323,7 +358,7 @@ class ReactTags extends Component {
   };
 
   handleSuggestionClick(i) {
-    this.addTag(this.state.suggestions[i]);
+  	this.addTag(this.state.suggestions[i]);
   }
 
   handleSuggestionHover(i) {
@@ -331,6 +366,42 @@ class ReactTags extends Component {
       selectedIndex: i,
       selectionMode: true,
     });
+  }
+
+  onTagUpdate(tag) {
+  	console.log(tag)
+  	let updatedTag;
+  	const { currentEditIndex, inputValue } = this.state;
+  	const { onTagUpdate, labelField } = this.props;
+  	if(tag) {
+  		updatedTag = {
+  			...tag,
+  			index: currentEditIndex,
+  		};
+  	}
+  	else {
+	    updatedTag = {
+        [labelField]: inputValue,
+        id: inputValue,
+        index: currentEditIndex,
+	    };
+  	}
+
+  	if(onTagUpdate && updatedTag) {
+  		onTagUpdate(updatedTag);
+  	}
+
+  	// reset the state
+    this.setState({
+      inputValue: '',
+      currentEditIndex: -1,
+      editing: false,
+      query: '',
+      selectionMode: false,
+      selectedIndex: -1,
+    });
+
+    this.resetAndFocusInput();
   }
 
   moveTag(dragIndex, hoverIndex) {
@@ -351,6 +422,7 @@ class ReactTags extends Component {
       removeComponent,
       readOnly,
       allowDragDrop,
+      editable,
     } = this.props;
     const { classNames } = this.state;
     const moveTag = allowDragDrop ? this.moveTag : null;
@@ -363,6 +435,8 @@ class ReactTags extends Component {
           labelField={labelField}
           onDelete={this.handleDelete.bind(this, index)}
           moveTag={moveTag}
+          editable={editable}
+          editTag={this.editTag.bind(this, index)}
           removeComponent={removeComponent}
           onTagClicked={this.handleTagClick.bind(this, index)}
           readOnly={readOnly}
@@ -403,7 +477,7 @@ class ReactTags extends Component {
           name={inputName}
           id={inputId}
           maxLength={maxLength}
-          value={this.props.inputValue}
+          value={this.state.inputValue}
         />
 
         <Suggestions
@@ -424,8 +498,9 @@ class ReactTags extends Component {
     return (
       <div className={ClassNames(this.state.classNames.tags, 'react-tags-wrapper')}>
         <div className={this.state.classNames.selected}>
-          {tagItems}
+          {this.state.editing ? tagItems.slice(0, this.state.currentEditIndex) : tagItems}
           {this.props.inline && tagInput}
+          {this.state.editing && tagItems.slice((this.state.currentEditIndex + 1))}
         </div>
         {!this.props.inline && tagInput}
       </div>
